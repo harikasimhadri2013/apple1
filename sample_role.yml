@@ -1,0 +1,51 @@
+---
+
+- include_vars:
+    file: "{{ kind }}.yml"
+
+- name: Stop Tomcat Service
+  become: true
+  shell: "service tomcat {{ env_name }} stop"
+
+- name: Backup the war file
+  become: true
+  shell: "cp -r {{ tomcat_webapps_directory }}/{{ local_war_file_name }}.war {{ war_backup_directory }}/{{ local_war_file_name }}.war-copy"
+
+- name: Copy war files to destination.
+  become: true
+  copy:
+    src: "{{ lookup('pipe','ls -1 {{ role_path }}/files/target/*.war') }}"
+    dest: "{{ tomcat_webapps_directory }}/{{  local_war_file_name }}.war"
+
+- name: Copy config files to destination.
+  become: true
+  copy:
+    src: "{{ role_path }}/files/src/conf/{{ env_name }}/"
+    dest: "/opt/webgw/conf/{{ env_name }}/"
+
+- name: Set the permissions for war file
+  become: true
+  file:
+    path: "{{ tomcat_webapps_directory }}/{{ local_war_file_name }}.war"
+    owner: "{{ war_owner }}"
+    group: "{{ war_group }}"
+    mode: "{{ war_mode }}"
+
+- name: Set the permissions for config files
+  become: true
+  file:
+    path: "{{ tomcat_webapps_directory }}/temp/"
+    owner: "{{ war_owner }}"
+    group: "{{ war_group }}"
+    mode: "{{ war_mode }}"
+    recurse: yes
+
+- name: Remove the existing Directory
+  become: true
+  file:
+    path: "{{ tomcat_webapps_directory }}/{{ local_war_file_name }}"
+    state: absent
+
+- name: Start Tomcat Service
+  become: true
+  shell: "service tomcat {{ env_name }} start"
